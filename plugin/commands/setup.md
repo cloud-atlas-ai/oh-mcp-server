@@ -1,130 +1,80 @@
 # Setup Open Horizons MCP
 
-Configure Claude Code to use the Open Horizons MCP server for strategic alignment integration.
+Set up the Open Horizons MCP server for strategic alignment integration.
 
-## Prerequisites
+**Execute these steps in order:**
 
-You'll need:
-- An Open Horizons account at https://app.openhorizons.me
-- An API key (from Settings > API Keys)
+## Step 1: Check if oh-mcp is installed
 
-## Step 1: Install MCP Server Globally
-
-```bash
-npm install -g @cloud-atlas-ai/oh-mcp-server
-```
-
-Verify it's installed:
+Run this command:
 ```bash
 which oh-mcp
 ```
 
-## Step 2: Get Your API Key
+If not found, install it:
+```bash
+npm install -g @cloud-atlas-ai/oh-mcp-server
+```
 
-1. Go to https://app.openhorizons.me
-2. Sign in to your account
-3. Navigate to **Settings > API Keys**
-4. Create a new API key or copy an existing one
-5. Copy the key to clipboard
+## Step 2: Check for existing API key config
 
-## Step 3: Create Global Config (One-Time Setup)
+Check if `~/.config/openhorizons/config.json` exists and has an api_key:
+```bash
+cat ~/.config/openhorizons/config.json 2>/dev/null
+```
 
-Create the config directory and file:
+If the file exists and has a valid api_key, skip to Step 3.
 
+If not configured, check if `sg` (superego CLI) is available:
+```bash
+which sg
+```
+
+**If sg is available:** Tell the user to run `sg setup-oh` in their terminal. This will:
+- Open browser to get API key
+- Prompt them to paste the key
+- Create the config file
+
+**If sg is NOT available:** Ask the user for their API key, then create the config:
 ```bash
 mkdir -p ~/.config/openhorizons
 ```
 
-Create `~/.config/openhorizons/config.json` with your API key:
-
+Then write to `~/.config/openhorizons/config.json`:
 ```json
 {
-  "api_key": "<paste-your-api-key-here>",
+  "api_key": "<USER_PROVIDED_KEY>",
   "api_url": "https://app.openhorizons.me"
 }
 ```
 
-**This config is shared across all your projects - you only set it up once.**
+Tell them to get a key from https://app.openhorizons.me/settings/api-keys if they don't have one.
 
-## Step 4: Configure Claude Code's MCP Settings
+## Step 3: Add MCP server to Claude Code settings
 
-Add OH MCP to your **global** Claude Code settings at `~/.claude/settings.json`:
+Read the current settings:
+```bash
+cat ~/.claude/settings.json 2>/dev/null
+```
 
+Add `oh-mcp` to the `mcpServers` section. The entry should be:
 ```json
-{
-  "mcpServers": {
-    "oh-mcp": {
-      "command": "oh-mcp"
-    }
-  }
+"oh-mcp": {
+  "command": "oh-mcp"
 }
 ```
 
-That's it! The MCP server reads config from `~/.config/openhorizons/config.json` automatically.
+If `mcpServers` doesn't exist, create it. Preserve all existing settings.
 
-**If you already have `mcpServers`**, just add the `oh-mcp` entry:
+Write the updated settings back to `~/.claude/settings.json`.
 
-```json
-{
-  "mcpServers": {
-    "existing-server": { ... },
-    "oh-mcp": {
-      "command": "oh-mcp"
-    }
-  }
-}
-```
+## Step 4: Inform the user
 
-## Step 5: Restart Claude Code
-
-Close and reopen Claude Code (or restart the current session) for the MCP configuration to take effect.
-
-## Step 6: Verify It Works
-
-Ask Claude to test the connection:
-
-```
-Try calling: oh_about
-```
-
-If OH MCP tools appear and work, you're done! You now have access to:
-
-- **Read alignment context:**
-  - `oh_get_contexts` - List workspaces
-  - `oh_get_endeavors` - Browse missions, aims, initiatives, tasks
-  - `oh_get_logs` - Review decisions and progress
-
-- **Write alignment context:**
-  - `oh_log_decision` - Document decisions tied to endeavors
-  - `oh_create_endeavor` - Add new missions, aims, initiatives, tasks
-  - `oh_update_endeavor` - Update existing endeavors
-
-- **Manage contexts:**
-  - `oh_create_context` - Create shared workspaces
-  - `oh_invite_to_context` - Invite team members
-  - `oh_move_endeavor` - Move endeavors between contexts
-
-## Troubleshooting
-
-**"Cannot find oh-mcp command"**
-- Run `npm install -g @cloud-atlas-ai/oh-mcp-server`
-- Make sure npm global bin is in your PATH
-
-**"API key invalid" or "Connection failed"**
-- Verify your API key in `~/.config/openhorizons/config.json`
-- Check that https://app.openhorizons.me is accessible
-
-**"Config not found"**
-- Create `~/.config/openhorizons/config.json` with your API key
-- Make sure the JSON is valid (no trailing commas)
-
-**"MCP server crashed" or "No tools available"**
-- Check Claude Code's MCP logs for error details
-- Try running manually: `oh-mcp`
-
-**Want to disable OH MCP temporarily?**
-- Remove or comment out the `oh-mcp` entry in `~/.claude/settings.json`
-
----
-
-**Done!** Claude Code now has full access to your Open Horizons alignment context. Every decision Claude makes can be logged back to OH, keeping your strategic alignment and execution in sync.
+Tell the user:
+1. Setup is complete
+2. They need to **restart Claude Code** for the MCP to load
+3. After restart, OH MCP tools will be available:
+   - `oh_get_contexts` - List workspaces
+   - `oh_get_endeavors` - Browse endeavors
+   - `oh_log_decision` - Log decisions
+   - `oh_about` - Test the connection
