@@ -1,0 +1,12 @@
+{
+  "name": "oh-mcp",
+  "version": "0.1.0",
+  "description": "Open Horizons MCP - Align AI decision-making with strategic context",
+  "author": {
+    "name": "Cloud Atlas AI",
+    "email": "hello@cloudatlas.ai",
+    "url": "https://github.com/cloud-atlas-ai/open-horizons"
+  },
+  "repository": "https://github.com/cloud-atlas-ai/open-horizons",
+  "homepage": "https://app.openhorizons.me"
+}

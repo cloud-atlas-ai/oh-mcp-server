@@ -1,0 +1,24 @@
+{
+  "name": "@cloud-atlas-ai/oh-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Open Horizons - enables AI agents to read/write alignment context",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "oh-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
