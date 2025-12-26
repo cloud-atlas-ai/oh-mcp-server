@@ -50,23 +50,14 @@ Then write to `~/.config/openhorizons/config.json`:
 
 Tell them to get a key from https://app.openhorizons.me/settings/api-keys if they don't have one.
 
-## Step 3: Add MCP server to Claude Code settings
+## Step 3: Add MCP server to Claude Code
 
-Read the current settings:
+Use the `claude mcp add` command to register the server:
 ```bash
-cat ~/.claude/settings.json 2>/dev/null
+claude mcp add oh-mcp --scope user -- oh-mcp
 ```
 
-Add `oh-mcp` to the `mcpServers` section. The entry should be:
-```json
-"oh-mcp": {
-  "command": "oh-mcp"
-}
-```
-
-If `mcpServers` doesn't exist, create it. Preserve all existing settings.
-
-Write the updated settings back to `~/.claude/settings.json`.
+This adds oh-mcp to `~/.claude.json` so it's available across all projects.
 
 ## Step 4: Inform the user
 
