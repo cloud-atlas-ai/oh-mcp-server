@@ -1,0 +1,22 @@
+{
+  "name": "oh-mcp",
+  "owner": {
+    "name": "Cloud Atlas AI",
+    "email": "hello@cloudatlas.ai"
+  },
+  "metadata": {
+    "description": "Open Horizons MCP - Strategic alignment for AI agents",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "oh-mcp",
+      "source": "./",
+      "description": "Open Horizons MCP - Connect Claude Code to strategic alignment context. Works best with superego for metacognitive feedback tied to strategic goals.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Cloud Atlas AI"
+      }
+    }
+  ]
+}
