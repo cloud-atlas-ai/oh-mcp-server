@@ -5,9 +5,9 @@
  * Enables AI agents to read/write alignment context from OH.
  * Uses stdio transport for Claude Code integration.
  *
- * Environment variables:
- * - OH_API_URL: OH API base URL (default: http://localhost:3001)
- * - OH_API_KEY: OH API key for authentication
+ * Configuration (in order of precedence):
+ * 1. Environment variables: OH_API_URL, OH_API_KEY
+ * 2. Config file: ~/.config/openhorizons/config.json
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -17,13 +17,35 @@ import {
   CallToolRequestSchema,
   CallToolResult
 } from '@modelcontextprotocol/sdk/types.js';
+import { readFileSync, existsSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 
-// Configuration from environment
-const OH_API_URL = process.env.OH_API_URL || 'http://localhost:3001';
-const OH_API_KEY = process.env.OH_API_KEY;
+// Load config from ~/.config/openhorizons/config.json
+function loadConfig(): { api_key?: string; api_url?: string } {
+  const configPath = join(homedir(), '.config', 'openhorizons', 'config.json');
+  if (existsSync(configPath)) {
+    try {
+      const content = readFileSync(configPath, 'utf-8');
+      return JSON.parse(content);
+    } catch (e) {
+      console.error(`Warning: Failed to parse config at ${configPath}:`, e);
+    }
+  }
+  return {};
+}
+
+const fileConfig = loadConfig();
+
+// Configuration: env vars take precedence over config file
+const OH_API_URL = process.env.OH_API_URL || fileConfig.api_url || 'https://app.openhorizons.me';
+const OH_API_KEY = process.env.OH_API_KEY || fileConfig.api_key;
 
 if (!OH_API_KEY) {
-  console.error('ERROR: OH_API_KEY environment variable is required');
+  console.error('ERROR: OH API key not found.');
+  console.error('Please either:');
+  console.error('  1. Create ~/.config/openhorizons/config.json with {"api_key": "your-key", "api_url": "https://app.openhorizons.me"}');
+  console.error('  2. Set OH_API_KEY environment variable');
   process.exit(1);
 }
 

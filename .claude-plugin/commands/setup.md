@@ -7,22 +7,17 @@ Configure Claude Code to use the Open Horizons MCP server for strategic alignmen
 You'll need:
 - An Open Horizons account at https://app.openhorizons.me
 - An API key (from Settings > API Keys)
-- The `@cloud-atlas-ai/oh-mcp-server` package installed (or available globally)
 
-## Step 1: Verify MCP Server is Available
+## Step 1: Install MCP Server Globally
 
-Check if `oh-mcp` binary is available:
+```bash
+npm install -g @cloud-atlas-ai/oh-mcp-server
+```
 
+Verify it's installed:
 ```bash
 which oh-mcp
 ```
-
-If not found:
-- **Local install:** `npm install @cloud-atlas-ai/oh-mcp-server` (adds to `node_modules/.bin/`)
-- **Global install:** `npm install -g @cloud-atlas-ai/oh-mcp-server`
-- **From project root:** `pnpm install @cloud-atlas-ai/oh-mcp-server`
-
-Note the full path to the binary (you'll need it in Step 3).
 
 ## Step 2: Get Your API Key
 
@@ -32,70 +27,49 @@ Note the full path to the binary (you'll need it in Step 3).
 4. Create a new API key or copy an existing one
 5. Copy the key to clipboard
 
-You'll paste this in the next step.
+## Step 3: Create Global Config (One-Time Setup)
 
-## Step 3: Create `.env.local` with API Key
-
-Create or update `.env.local` in your project root:
+Create the config directory and file:
 
 ```bash
-OH_API_KEY=<paste-your-api-key-here>
-OH_API_URL=https://app.openhorizons.me
+mkdir -p ~/.config/openhorizons
 ```
 
-**⚠️ Important:** Add `.env.local` to `.gitignore` if not already there:
-```bash
-echo ".env.local" >> .gitignore
+Create `~/.config/openhorizons/config.json` with your API key:
+
+```json
+{
+  "api_key": "<paste-your-api-key-here>",
+  "api_url": "https://app.openhorizons.me"
+}
 ```
+
+**This config is shared across all your projects - you only set it up once.**
 
 ## Step 4: Configure Claude Code's MCP Settings
 
-Claude Code needs to know how to launch the OH MCP server. Edit or create `.claude/settings.json`:
-
-**Current structure:** Check if you already have `mcpServers`:
-```bash
-cat .claude/settings.json | grep -A 10 mcpServers
-```
-
-**If `mcpServers` doesn't exist yet:**
-
-Add this to `.claude/settings.json` (or create it if missing):
+Add OH MCP to your **global** Claude Code settings at `~/.claude/settings.json`:
 
 ```json
 {
   "mcpServers": {
     "oh-mcp": {
-      "command": "node",
-      "args": ["<PATH-TO-OH-MCP>/dist/index.js"],
-      "env": {
-        "OH_API_KEY": "${env:OH_API_KEY}",
-        "OH_API_URL": "https://app.openhorizons.me"
-      }
+      "command": "oh-mcp"
     }
   }
 }
 ```
 
-**Replace `<PATH-TO-OH-MCP>` with:**
-- If installed locally: `./node_modules/@cloud-atlas-ai/oh-mcp-server`
-- If installed globally: `/usr/local/lib/node_modules/@cloud-atlas-ai/oh-mcp-server`
-- Or use the full path from Step 1
+That's it! The MCP server reads config from `~/.config/openhorizons/config.json` automatically.
 
-**If `mcpServers` already exists:**
-
-Add the `oh-mcp` entry to the existing `mcpServers` object:
+**If you already have `mcpServers`**, just add the `oh-mcp` entry:
 
 ```json
 {
   "mcpServers": {
     "existing-server": { ... },
     "oh-mcp": {
-      "command": "node",
-      "args": ["<PATH-TO-OH-MCP>/dist/index.js"],
-      "env": {
-        "OH_API_KEY": "${env:OH_API_KEY}",
-        "OH_API_URL": "https://app.openhorizons.me"
-      }
+      "command": "oh-mcp"
     }
   }
 }
@@ -133,28 +107,23 @@ If OH MCP tools appear and work, you're done! You now have access to:
 ## Troubleshooting
 
 **"Cannot find oh-mcp command"**
-- Make sure you installed the package in Step 1
-- Verify the path in `.claude/settings.json` is correct
-- Try using absolute path: `/Users/username/.nvm/versions/node/v18.0.0/lib/node_modules/@open-horizons/mcp-server`
+- Run `npm install -g @cloud-atlas-ai/oh-mcp-server`
+- Make sure npm global bin is in your PATH
 
 **"API key invalid" or "Connection failed"**
-- Verify the API key in `.env.local` is correct
-- Make sure `.env.local` exists and is readable by Claude Code
+- Verify your API key in `~/.config/openhorizons/config.json`
 - Check that https://app.openhorizons.me is accessible
 
-**"MCP server crashed" or "No tools available"**
-- Check that `node_modules/@cloud-atlas-ai/oh-mcp-server/dist/index.js` exists
-- Verify the `args` path in `.claude/settings.json` is correct (relative paths resolve from project root)
-- Try running the MCP manually: `OH_API_KEY=<key> node ./node_modules/@cloud-atlas-ai/oh-mcp-server/dist/index.js`
+**"Config not found"**
+- Create `~/.config/openhorizons/config.json` with your API key
+- Make sure the JSON is valid (no trailing commas)
 
-**"Settings.json syntax error"**
-- Use a JSON validator: `jq . .claude/settings.json`
-- Make sure all quotes are straight (not curly)
-- Check for trailing commas in objects/arrays
+**"MCP server crashed" or "No tools available"**
+- Check Claude Code's MCP logs for error details
+- Try running manually: `oh-mcp`
 
 **Want to disable OH MCP temporarily?**
-- Comment out the `oh-mcp` entry in `.claude/settings.json`
-- Or set `OH_API_KEY=""` in `.env.local`
+- Remove or comment out the `oh-mcp` entry in `~/.claude/settings.json`
 
 ---
 
