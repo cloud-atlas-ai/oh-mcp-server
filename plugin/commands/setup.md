@@ -4,19 +4,7 @@ Set up the Open Horizons MCP server for strategic alignment integration.
 
 **Execute these steps in order:**
 
-## Step 1: Check if oh-mcp is installed
-
-Run this command:
-```bash
-which oh-mcp
-```
-
-If not found, install it:
-```bash
-npm install -g @cloud-atlas-ai/oh-mcp-server
-```
-
-## Step 2: Check for existing API key config
+## Step 1: Check for existing API key config
 
 Check if `~/.config/openhorizons/config.json` exists and has an api_key:
 ```bash
@@ -50,16 +38,16 @@ Then write to `~/.config/openhorizons/config.json`:
 
 Tell them to get a key from https://app.openhorizons.me/settings/api-keys if they don't have one.
 
-## Step 3: Add MCP server to Claude Code
+## Step 2: Add MCP server to Claude Code
 
-Use the `claude mcp add` command to register the server:
+Use the `claude mcp add` command to register the server with npx (works across all Node.js versions):
 ```bash
-claude mcp add oh-mcp --scope user -- oh-mcp
+claude mcp add oh-mcp --scope user -- npx -y @cloud-atlas-ai/oh-mcp-server
 ```
 
-This adds oh-mcp to `~/.claude.json` so it's available across all projects.
+This adds oh-mcp to `~/.claude.json` so it's available across all projects. Using `npx` ensures it works regardless of which Node.js version each project uses.
 
-## Step 4: Inform the user
+## Step 3: Inform the user
 
 Tell the user:
 1. Setup is complete
