@@ -1054,21 +1054,18 @@ Mission (why you exist)
           }
         }
 
-        // Fetch recent logs (last 7 days) - get logs for all endeavors in context
+        // Fetch user's recent logs (last 7 days, all endeavors)
         let recentLogs: Array<{ log_date: string }> = [];
         const endDate = new Date().toISOString().split('T')[0];
         const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-        // Try to fetch logs for the context
-        if (targetContext) {
-          try {
-            const logsData = await ohFetch(
-              `/api/logs?entity_type=context&entity_id=${encodeURIComponent(targetContext.id)}&start_date=${startDate}&end_date=${endDate}`
-            );
-            recentLogs = logsData.logs || [];
-          } catch {
-            // Logs fetch might fail, continue without
-          }
+        try {
+          const logsData = await ohFetch(
+            `/api/logs?start_date=${startDate}&end_date=${endDate}`
+          );
+          recentLogs = logsData.logs || [];
+        } catch {
+          // Logs fetch might fail, continue without
         }
 
         // Assess state and generate guidance
