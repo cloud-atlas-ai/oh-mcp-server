@@ -419,9 +419,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: 'object',
           properties: {
             endeavor_id: { type: 'string', description: 'Endeavor ID this learning belongs to' },
+            context_id: { type: 'string', description: 'Context ID if not linked to a specific endeavor' },
             content: { type: 'string', description: 'The insight or pattern observed (markdown). Describe: what you expected, what actually happened, and why the difference mattered.' }
           },
-          required: ['endeavor_id', 'content']
+          required: ['content']
         }
       },
       {
@@ -431,9 +432,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: 'object',
           properties: {
             endeavor_id: { type: 'string', description: 'Endeavor ID this constraint applies to' },
+            context_id: { type: 'string', description: 'Context ID if not linked to a specific endeavor' },
             content: { type: 'string', description: 'The constraint or rule (markdown). Should clearly state what must/must not happen and why.' }
           },
-          required: ['endeavor_id', 'content']
+          required: ['content']
         }
       }
     ]
@@ -786,15 +788,23 @@ Mission (why you exist)
       }
 
       case 'oh_create_metis_candidate': {
-        const { endeavor_id, content } = args as {
-          endeavor_id: string;
+        const { endeavor_id, context_id, content } = args as {
+          endeavor_id?: string;
+          context_id?: string;
           content: string;
         };
+        if (!endeavor_id && !context_id) {
+          return {
+            content: [{ type: 'text', text: 'Error: Either endeavor_id or context_id is required' }],
+            isError: true
+          };
+        }
         const data = await ohFetch('/api/candidates', {
           method: 'POST',
           body: JSON.stringify({
             type: 'metis',
             endeavor_id,
+            context_id,
             content,
             source_type: 'mcp_session'
           })
@@ -808,15 +818,23 @@ Mission (why you exist)
       }
 
       case 'oh_create_guardrail_candidate': {
-        const { endeavor_id, content } = args as {
-          endeavor_id: string;
+        const { endeavor_id, context_id, content } = args as {
+          endeavor_id?: string;
+          context_id?: string;
           content: string;
         };
+        if (!endeavor_id && !context_id) {
+          return {
+            content: [{ type: 'text', text: 'Error: Either endeavor_id or context_id is required' }],
+            isError: true
+          };
+        }
         const data = await ohFetch('/api/candidates', {
           method: 'POST',
           body: JSON.stringify({
             type: 'guardrail',
             endeavor_id,
+            context_id,
             content,
             source_type: 'mcp_session'
           })
