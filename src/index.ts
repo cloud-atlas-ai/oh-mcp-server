@@ -69,10 +69,45 @@ async function ohFetch(path: string, options: RequestInit = {}): Promise<any> {
   return response.json();
 }
 
+// Instructions for Claude on when/how to use OH MCP tools
+const SERVER_INSTRUCTIONS = `
+Open Horizons MCP Server - Strategic Alignment for AI Agents
+
+Use this server to align AI decision-making with strategic context from Open Horizons.
+
+## When to Use
+
+1. **Starting Work Sessions**: Call oh_get_contexts and oh_get_endeavors at session start to understand the user's strategic context (missions, aims, initiatives, tasks).
+
+2. **Logging Progress**: After completing meaningful work (features, fixes, refactors), log decisions with oh_log_decision tied to relevant endeavors.
+
+3. **Surfacing Insights**: When you discover patterns or constraints during work:
+   - Use oh_create_metis_candidate for learnings/patterns (e.g., "Expected X, got Y, matters because Z")
+   - Use oh_create_guardrail_candidate for rules that should never be violated
+
+## Key Concepts
+
+- **Contexts**: Personal or shared workspaces containing endeavors
+- **Endeavors**: Hierarchical alignment structure (Mission → Aim → Initiative → Task)
+- **Decision Logs**: Captured reasoning tied to endeavors for traceability
+- **Candidates**: Insights surfaced for human review in OH Reflect mode
+
+## Proactive Usage
+
+If OH is configured, proactively:
+- Fetch context at session start to understand strategic alignment
+- Log important decisions after completing meaningful work
+- Surface learnings when patterns emerge (metis candidates)
+- Flag constraints that should be enforced (guardrail candidates)
+`.trim();
+
 // Create the MCP server
 const server = new Server(
-  { name: 'open-horizons', version: '0.1.0' },
-  { capabilities: { tools: {} } }
+  { name: 'open-horizons', version: '0.3.0' },
+  {
+    capabilities: { tools: {} },
+    instructions: SERVER_INSTRUCTIONS
+  }
 );
 
 // Define available tools
@@ -374,6 +409,31 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             log_id: { type: 'string', description: 'ID of the log to delete' }
           },
           required: ['log_id']
+        }
+      },
+      // Write operations - Candidates (for Reflect mode)
+      {
+        name: 'oh_create_metis_candidate',
+        description: 'Create a metis candidate (pattern/learning observed during work). Use this when you discover a reusable insight. The candidate will be reviewed by a human in the OH app Reflect mode, where they can promote it to full metis with structured fields (violated_expectation, observed_reality, consequence).',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            endeavor_id: { type: 'string', description: 'Endeavor ID this learning belongs to' },
+            content: { type: 'string', description: 'The insight or pattern observed (markdown). Describe: what you expected, what actually happened, and why the difference mattered.' }
+          },
+          required: ['endeavor_id', 'content']
+        }
+      },
+      {
+        name: 'oh_create_guardrail_candidate',
+        description: 'Create a guardrail candidate (constraint/rule that should be enforced). Use this when you discover something that should NEVER happen again. The candidate will be reviewed by a human in the OH app Reflect mode, where they can promote it to full guardrail with title and override protocol.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            endeavor_id: { type: 'string', description: 'Endeavor ID this constraint applies to' },
+            content: { type: 'string', description: 'The constraint or rule (markdown). Should clearly state what must/must not happen and why.' }
+          },
+          required: ['endeavor_id', 'content']
         }
       }
     ]
@@ -723,6 +783,50 @@ Mission (why you exist)
           method: 'DELETE'
         });
         return { content: [{ type: 'text', text: data.message || 'Log deleted' }] };
+      }
+
+      case 'oh_create_metis_candidate': {
+        const { endeavor_id, content } = args as {
+          endeavor_id: string;
+          content: string;
+        };
+        const data = await ohFetch('/api/candidates', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'metis',
+            endeavor_id,
+            content,
+            source_type: 'mcp_session'
+          })
+        });
+        return {
+          content: [{
+            type: 'text',
+            text: `Metis candidate created. ID: ${data.candidate_id}. It will appear in OH Reflect mode for review.`
+          }]
+        };
+      }
+
+      case 'oh_create_guardrail_candidate': {
+        const { endeavor_id, content } = args as {
+          endeavor_id: string;
+          content: string;
+        };
+        const data = await ohFetch('/api/candidates', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'guardrail',
+            endeavor_id,
+            content,
+            source_type: 'mcp_session'
+          })
+        });
+        return {
+          content: [{
+            type: 'text',
+            text: `Guardrail candidate created. ID: ${data.candidate_id}. It will appear in OH Reflect mode for review.`
+          }]
+        };
       }
 
       default:
