@@ -69,15 +69,166 @@ async function ohFetch(path: string, options: RequestInit = {}): Promise<any> {
   return response.json();
 }
 
+// Types for bootstrap state assessment
+interface GraphNode {
+  id: string;
+  node_type: string;
+  parent_id: string | null;
+  title: string;
+  description: string;
+  status: string;
+  created_at: string;
+}
+
+interface UserState {
+  contextCount: number;
+  personalContext: { id: string; title: string } | null;
+  hasMission: boolean;
+  missionCount: number;
+  aimCount: number;
+  initiativeCount: number;
+  taskCount: number;
+  maxDepth: number;
+  recentLogCount: number;
+  lastLogDate: string | null;
+  missions: GraphNode[];
+  aims: GraphNode[];
+}
+
+// Assess user's OH state from fetched data
+function assessUserState(
+  contexts: Array<{ id: string; title: string; is_owner: boolean }>,
+  endeavors: GraphNode[],
+  logs: Array<{ log_date: string }>
+): UserState {
+  const personalContext = contexts.find(c =>
+    c.title === 'Personal Workspace' || c.id.includes('personal:')
+  ) || null;
+
+  const missions = endeavors.filter(e => e.node_type.toLowerCase() === 'mission');
+  const aims = endeavors.filter(e => e.node_type.toLowerCase() === 'aim');
+  const initiatives = endeavors.filter(e => e.node_type.toLowerCase() === 'initiative');
+  const tasks = endeavors.filter(e => e.node_type.toLowerCase() === 'task');
+
+  // Calculate max depth by checking parent chains
+  let maxDepth = 0;
+  if (missions.length > 0) maxDepth = 1;
+  if (aims.length > 0) maxDepth = 2;
+  if (initiatives.length > 0) maxDepth = 3;
+  if (tasks.length > 0) maxDepth = 4;
+
+  // Sort logs by date to find most recent
+  const sortedLogs = [...logs].sort((a, b) =>
+    new Date(b.log_date).getTime() - new Date(a.log_date).getTime()
+  );
+
+  return {
+    contextCount: contexts.length,
+    personalContext: personalContext ? { id: personalContext.id, title: personalContext.title } : null,
+    hasMission: missions.length > 0,
+    missionCount: missions.length,
+    aimCount: aims.length,
+    initiativeCount: initiatives.length,
+    taskCount: tasks.length,
+    maxDepth,
+    recentLogCount: logs.length,
+    lastLogDate: sortedLogs.length > 0 ? sortedLogs[0].log_date : null,
+    missions,
+    aims
+  };
+}
+
+// Generate bootstrap guidance based on user state
+function generateBootstrapGuidance(
+  state: UserState,
+  currentWork: string | undefined,
+  depth: 'quick' | 'thorough'
+): string {
+  const sections: string[] = [];
+
+  // Section 1: Current State Summary
+  if (depth === 'thorough') {
+    const stateLines: string[] = ['## Your OH State\n'];
+    if (state.personalContext) {
+      stateLines.push(`**Context**: ${state.personalContext.title}`);
+    }
+    stateLines.push(`**Structure**: ${state.missionCount} Mission(s) → ${state.aimCount} Aim(s) → ${state.initiativeCount} Initiative(s) → ${state.taskCount} Task(s)`);
+    if (state.recentLogCount > 0) {
+      stateLines.push(`**Recent activity**: ${state.recentLogCount} log(s) in last 7 days (latest: ${state.lastLogDate})`);
+    } else {
+      stateLines.push(`**Recent activity**: No logs in the last 7 days`);
+    }
+    sections.push(stateLines.join('\n'));
+  }
+
+  // Section 2: Current Work Analysis (if provided)
+  if (currentWork) {
+    const workLines: string[] = ['\n## Connecting Your Work\n'];
+    workLines.push(`You're working on: **${currentWork}**\n`);
+
+    if (!state.hasMission) {
+      workLines.push(`Before diving into "${currentWork}", consider: what larger purpose does this serve? This work is a means to an end - what's the end?\n`);
+      workLines.push(`*"You're more likely to get where you want to go if you know where you're going."* (Aim With Clarity)`);
+    } else if (state.aimCount === 0) {
+      workLines.push(`You have a mission but no aims. Where does "${currentWork}" fit in your multi-year outcomes? Creating an aim first will help you see if this work is strategically aligned.\n`);
+      workLines.push(`*"Focus on what energizes you - those are the aims you'll sustain."* (Leverage Strengths)`);
+    } else {
+      workLines.push(`Consider which of your ${state.aimCount} aim(s) this work serves. If it doesn't clearly connect to any, that's valuable signal - either create a new aim or question if this work serves your priorities.\n`);
+      workLines.push(`*"Adaptability and momentum matter more than rigid adherence to a plan."* (Planning Over Plans)`);
+    }
+    sections.push(workLines.join('\n'));
+  }
+
+  // Section 3: Gap Analysis & Next Steps
+  const nextSteps: string[] = ['\n## Recommended Next Steps\n'];
+  const commands: string[] = ['\n## Suggested Commands\n```'];
+
+  if (!state.hasMission) {
+    nextSteps.push(`1. **Define your Mission** - What's your foundational purpose? A mission answers "why do I exist?" and makes every subsequent decision easier.`);
+    nextSteps.push(`   - Example: "Build tools that help teams stay strategically aligned"`);
+    commands.push(`oh_create_endeavor({ title: "Your mission here", type: "mission" })`);
+  } else if (state.aimCount === 0) {
+    nextSteps.push(`1. **Create 2-3 Aims** - What multi-year outcomes move you toward your mission? Limit to what you can realistically focus on.`);
+    nextSteps.push(`   - Example aims: "Master distributed systems", "Build a profitable SaaS product"`);
+    commands.push(`oh_create_endeavor({ title: "Your aim here", type: "aim", parent_id: "${state.missions[0]?.id || '<mission_id>'}" })`);
+  } else if (state.initiativeCount === 0) {
+    nextSteps.push(`1. **Create Initiatives** - What concrete projects or efforts will achieve your aims? These are your "how".`);
+    commands.push(`oh_create_endeavor({ title: "Your initiative here", type: "initiative", parent_id: "${state.aims[0]?.id || '<aim_id>'}" })`);
+  } else if (state.recentLogCount === 0) {
+    nextSteps.push(`1. **Start logging progress** - Your structure looks solid. Now capture decisions and learnings as you work.`);
+    nextSteps.push(`   *"Regular reflection and celebrating wins keeps growth dynamic."* (Sustain Momentum)`);
+    commands.push(`oh_log_decision({ endeavor_id: "<endeavor_id>", content: "Completed X, decided Y because Z" })`);
+  } else {
+    nextSteps.push(`1. **Continue your momentum** - Your alignment is active. Keep logging decisions and surface patterns as metis candidates when you notice them.`);
+    commands.push(`oh_log_decision({ endeavor_id: "<endeavor_id>", content: "..." })`);
+    commands.push(`oh_create_metis_candidate({ endeavor_id: "<endeavor_id>", content: "Expected X, got Y, matters because Z" })`);
+  }
+
+  // Add a secondary recommendation based on state
+  if (state.hasMission && state.recentLogCount > 0 && depth === 'thorough') {
+    nextSteps.push(`\n2. **Review your logs for patterns** - Look for recurring themes that might become metis (practical wisdom) or guardrails (constraints to enforce).`);
+  }
+
+  commands.push('```');
+  sections.push(nextSteps.join('\n'));
+  sections.push(commands.join('\n'));
+
+  return sections.join('\n');
+}
+
 // Instructions for Claude on when/how to use OH MCP tools
 const SERVER_INSTRUCTIONS = `
 Open Horizons MCP Server - Strategic Alignment for AI Agents
 
 Use this server to align AI decision-making with strategic context from Open Horizons.
 
+## Quick Start
+
+Call **oh_bootstrap** at session start to get context-aware guidance. Optionally pass current_work to connect your work to strategic context.
+
 ## When to Use
 
-1. **Starting Work Sessions**: Call oh_get_contexts and oh_get_endeavors at session start to understand the user's strategic context (missions, aims, initiatives, tasks).
+1. **Starting Work Sessions**: Call oh_bootstrap with current_work to understand how your work connects to strategic context. Example: oh_bootstrap({ current_work: "building auth system" })
 
 2. **Logging Progress**: After completing meaningful work (features, fixes, refactors), log decisions with oh_log_decision tied to relevant endeavors.
 
@@ -95,7 +246,7 @@ Use this server to align AI decision-making with strategic context from Open Hor
 ## Proactive Usage
 
 If OH is configured, proactively:
-- Fetch context at session start to understand strategic alignment
+- Call oh_bootstrap at session start to get tailored guidance
 - Log important decisions after completing meaningful work
 - Surface learnings when patterns emerge (metis candidates)
 - Flag constraints that should be enforced (guardrail candidates)
@@ -103,7 +254,7 @@ If OH is configured, proactively:
 
 // Create the MCP server
 const server = new Server(
-  { name: 'open-horizons', version: '0.3.0' },
+  { name: 'open-horizons', version: '0.3.1' },
   {
     capabilities: { tools: {} },
     instructions: SERVER_INSTRUCTIONS
@@ -436,6 +587,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             content: { type: 'string', description: 'The constraint or rule (markdown). Should clearly state what must/must not happen and why.' }
           },
           required: ['content']
+        }
+      },
+      // Bootstrap - context-aware onboarding and alignment
+      {
+        name: 'oh_bootstrap',
+        description: 'Analyze your OH setup and get context-aware guidance for connecting your current work to your strategic hierarchy. Use at session start or when beginning new work to ensure alignment.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            current_work: {
+              type: 'string',
+              description: 'What you are currently working on (e.g., "building auth system", "refactoring the API"). Helps connect work to strategic context.'
+            },
+            context_id: {
+              type: 'string',
+              description: 'Which OH context to analyze (defaults to personal context)'
+            },
+            depth: {
+              type: 'string',
+              enum: ['quick', 'thorough'],
+              description: 'Quick = summary + next step. Thorough = full state analysis + detailed guidance. Default: thorough'
+            }
+          },
+          required: []
         }
       }
     ]
@@ -843,6 +1018,67 @@ Mission (why you exist)
           content: [{
             type: 'text',
             text: `Guardrail candidate created. ID: ${data.candidate_id}. It will appear in OH Reflect mode for review.`
+          }]
+        };
+      }
+
+      case 'oh_bootstrap': {
+        const { current_work, context_id, depth = 'thorough' } = args as {
+          current_work?: string;
+          context_id?: string;
+          depth?: 'quick' | 'thorough';
+        };
+
+        // Fetch current state
+        const contexts = await ohFetch('/api/contexts');
+
+        // Find target context (specified, or personal)
+        let targetContext = context_id
+          ? contexts.find((c: { id: string }) => c.id === context_id)
+          : contexts.find((c: { id: string; title: string }) =>
+              c.title === 'Personal Workspace' || c.id.includes('personal:')
+            );
+
+        if (!targetContext && contexts.length > 0) {
+          targetContext = contexts[0]; // Fall back to first available
+        }
+
+        // Fetch endeavors for the target context
+        let endeavors: GraphNode[] = [];
+        if (targetContext) {
+          try {
+            const dashboard = await ohFetch(`/api/dashboard?contextId=${encodeURIComponent(targetContext.id)}`);
+            endeavors = dashboard.nodes || dashboard || [];
+          } catch {
+            // Context might be empty, continue with empty endeavors
+          }
+        }
+
+        // Fetch recent logs (last 7 days) - get logs for all endeavors in context
+        let recentLogs: Array<{ log_date: string }> = [];
+        const endDate = new Date().toISOString().split('T')[0];
+        const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        // Try to fetch logs for the context
+        if (targetContext) {
+          try {
+            const logsData = await ohFetch(
+              `/api/logs?entity_type=context&entity_id=${encodeURIComponent(targetContext.id)}&start_date=${startDate}&end_date=${endDate}`
+            );
+            recentLogs = logsData.logs || [];
+          } catch {
+            // Logs fetch might fail, continue without
+          }
+        }
+
+        // Assess state and generate guidance
+        const state = assessUserState(contexts, endeavors, recentLogs);
+        const guidance = generateBootstrapGuidance(state, current_work, depth);
+
+        return {
+          content: [{
+            type: 'text',
+            text: guidance
           }]
         };
       }
