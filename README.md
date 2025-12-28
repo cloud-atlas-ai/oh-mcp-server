@@ -16,53 +16,55 @@ Open Horizons MCP Server connects AI coding assistants (like Claude Code) to you
 
 ## Quick Start
 
-### 1. Install
-
-```bash
-npm install -g @cloud-atlas-ai/oh-mcp-server
-```
-
-Or locally in your project:
-
-```bash
-npm install @cloud-atlas-ai/oh-mcp-server
-```
-
-### 2. Get Your API Key
+### 1. Get Your API Key
 
 1. Sign up at [app.openhorizons.me](https://app.openhorizons.me)
 2. Go to **Settings > API Keys**
 3. Create a new API key
 
-### 3. Configure Environment
+### 2. Choose Your Setup Method
 
-Add to your `.env` or `.env.local`:
+#### Option A: Plugin Setup (Recommended for Claude Code)
 
-```bash
-OH_API_KEY=your_api_key_here
-OH_API_URL=https://app.openhorizons.me
-```
-
-### 4. Configure Claude Code
-
-For Claude Code users, run:
+The plugin provides a guided `/oh-mcp:setup` command:
 
 ```bash
+# Add the marketplace
+claude plugin marketplace add cloud-atlas-ai/oh-mcp-server
+
+# Install the plugin
+claude plugin install oh-mcp@oh-mcp
+
+# Restart Claude Code, then run:
 /oh-mcp:setup
 ```
 
-This will guide you through configuring the MCP server in Claude Code's settings.
+#### Option B: Direct CLI Setup (No Plugin Needed)
 
-Or manually add to `.claude/settings.json`:
+Use the `claude mcp add` command directly:
+
+```bash
+claude mcp add oh-mcp -s user \
+  -e OH_API_URL=https://app.openhorizons.me \
+  -e OH_API_KEY=your_api_key_here \
+  -- npx -y @cloud-atlas-ai/oh-mcp-server
+```
+
+This adds the MCP server to `~/.claude.json` so it's available in all projects.
+
+#### Option C: Project-Specific Setup
+
+Add to your project's `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "oh-mcp": {
-      "command": "node",
-      "args": ["./node_modules/@cloud-atlas-ai/oh-mcp-server/dist/index.js"],
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@cloud-atlas-ai/oh-mcp-server"],
       "env": {
-        "OH_API_KEY": "${env:OH_API_KEY}",
+        "OH_API_KEY": "your_api_key_here",
         "OH_API_URL": "https://app.openhorizons.me"
       }
     }
@@ -70,9 +72,9 @@ Or manually add to `.claude/settings.json`:
 }
 ```
 
-### 5. Verify
+### 3. Verify
 
-Ask Claude to test the connection:
+Restart Claude Code, then ask Claude to test the connection:
 
 ```
 Try calling: oh_about
@@ -105,6 +107,11 @@ If it works, you'll see OH MCP tools available!
 - **`oh_update_log`** - Update a log entry's content
 - **`oh_delete_log`** - Delete a log entry
 
+### Write Operations (Candidates)
+
+- **`oh_create_metis_candidate`** - Surface a pattern/learning for later review
+- **`oh_create_guardrail_candidate`** - Surface a constraint/rule for later review
+
 ### Write Operations (Contexts)
 
 - **`oh_create_context`** - Create new shared context (workspace)
@@ -134,17 +141,19 @@ Mission (why you exist)
 
 ### 1. Strategic Coding with Claude Code
 
-Install [superego](https://github.com/cloud-atlas-ai/superego) + OH MCP:
+Install [superego](https://github.com/cloud-atlas-ai/superego) + OH MCP for metacognitive feedback tied to strategic context:
 
 ```bash
 # Install superego (metacognitive advisor)
-/plugin marketplace add cloud-atlas-ai/superego
-/plugin install superego@superego
-/superego:init
+claude plugin marketplace add cloud-atlas-ai/superego
+claude plugin install superego@superego
 
 # Install OH MCP (strategic alignment)
-/plugin marketplace add cloud-atlas-ai/oh-mcp-server
-/plugin install oh-mcp@oh-mcp-server
+claude plugin marketplace add cloud-atlas-ai/oh-mcp-server
+claude plugin install oh-mcp@oh-mcp
+
+# Restart Claude Code, then:
+/superego:init
 /oh-mcp:setup
 ```
 
@@ -177,6 +186,20 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 - `OH_API_KEY` - Your Open Horizons API key (required)
 - `OH_API_URL` - OH API base URL (default: `https://app.openhorizons.me`)
 
+## Global Installation (Alternative)
+
+If you prefer a global install over `npx`:
+
+```bash
+npm install -g @cloud-atlas-ai/oh-mcp-server
+
+# Then use 'oh-mcp' command directly:
+claude mcp add oh-mcp -s user \
+  -e OH_API_URL=https://app.openhorizons.me \
+  -e OH_API_KEY=your_api_key_here \
+  -- oh-mcp
+```
+
 ## Development
 
 ```bash
@@ -200,22 +223,26 @@ OH_API_KEY=your_key npm start
 ## Troubleshooting
 
 **"API key invalid"**
-- Verify your API key is correct in `.env.local`
+- Verify your API key is correct
 - Make sure you're using a key from https://app.openhorizons.me/settings/api-keys
 
 **"Connection failed"**
 - Check that https://app.openhorizons.me is accessible
 - Verify your firewall/proxy isn't blocking the connection
 
+**"MCP server not found" or "/oh-mcp:setup not recognized"**
+- The `/oh-mcp:setup` command requires the plugin (see Option A above)
+- Without the plugin, use Option B or C for manual setup
+
 **"MCP server crashed"**
 - Check that the `dist/index.js` file exists (run `npm run build` if missing)
 - Look at Claude Code's MCP logs for error details
-- Try running manually: `OH_API_KEY=<key> node dist/index.js`
+- Try running manually: `OH_API_KEY=<key> npx @cloud-atlas-ai/oh-mcp-server`
 
 ## Related Projects
 
 - **[Superego](https://github.com/cloud-atlas-ai/superego)** - Metacognitive advisor for Claude Code (pairs perfectly with OH MCP)
-- **[Open Horizons](https://app.openhorizons.me)** - The strategic alignment platform (proprietary)
+- **[Open Horizons](https://app.openhorizons.me)** - The strategic alignment platform
 
 ## License
 
@@ -223,6 +250,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Support
 
-- **Documentation**: [Open Horizons Docs](https://docs.openhorizons.me)
 - **Issues**: [GitHub Issues](https://github.com/cloud-atlas-ai/oh-mcp-server/issues)
 - **Email**: hello@cloudatlas.ai
