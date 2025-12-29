@@ -1058,8 +1058,8 @@ Mission (why you exist)
           try {
             const dashboard = await ohFetch(`/api/dashboard?contextId=${encodeURIComponent(targetContext.id)}`);
             endeavors = dashboard.nodes || dashboard || [];
-          } catch {
-            // Context might be empty, continue with empty endeavors
+          } catch (e) {
+            console.error('Warning: Failed to fetch endeavors:', e instanceof Error ? e.message : e);
           }
         }
 
@@ -1073,8 +1073,8 @@ Mission (why you exist)
             `/api/logs?start_date=${startDate}&end_date=${endDate}`
           );
           recentLogs = logsData.logs || [];
-        } catch {
-          // Logs fetch might fail, continue without
+        } catch (e) {
+          console.error('Warning: Failed to fetch logs:', e instanceof Error ? e.message : e);
         }
 
         // Assess state and generate guidance
