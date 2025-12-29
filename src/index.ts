@@ -269,7 +269,7 @@ If OH is configured, proactively:
 
 // Create the MCP server
 const server = new Server(
-  { name: 'open-horizons', version: '0.3.1' },
+  { name: 'open-horizons', version: '0.3.2' },
   {
     capabilities: { tools: {} },
     instructions: SERVER_INSTRUCTIONS
@@ -1045,7 +1045,8 @@ Mission (why you exist)
         };
 
         // Fetch current state
-        const contexts = await ohFetch('/api/contexts');
+        const contextsResponse = await ohFetch('/api/contexts');
+        const contexts = contextsResponse.contexts || [];
 
         // Find target context (specified, or personal)
         let targetContext = context_id
