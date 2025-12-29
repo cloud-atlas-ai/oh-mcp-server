@@ -1061,7 +1061,7 @@ Mission (why you exist)
         if (targetContext) {
           try {
             const dashboard = await ohFetch(`/api/dashboard?contextId=${encodeURIComponent(targetContext.id)}`);
-            endeavors = dashboard.nodes || dashboard || [];
+            endeavors = dashboard.nodes || [];
           } catch (e) {
             console.error('Warning: Failed to fetch endeavors:', e instanceof Error ? e.message : e);
           }
