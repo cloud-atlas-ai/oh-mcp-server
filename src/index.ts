@@ -144,6 +144,15 @@ function generateBootstrapGuidance(
   currentWork: string | undefined,
   depth: 'quick' | 'thorough'
 ): string {
+  // Handle no-contexts edge case
+  if (state.contextCount === 0) {
+    return `## Getting Started with Open Horizons
+
+You don't have any OH contexts yet. Your Personal Workspace is created automatically when you first visit the OH app.
+
+**Next step**: Visit [app.openhorizons.me](https://app.openhorizons.me) to set up your account, then run oh_bootstrap again.`;
+  }
+
   const sections: string[] = [];
 
   // Section 1: Current State Summary
