@@ -167,6 +167,9 @@ You don't have any OH contexts yet. Your Personal Workspace is created automatic
     } else {
       stateLines.push(`**Recent activity**: No logs in the last 7 days`);
     }
+    if (state.contextCount > 1) {
+      stateLines.push(`\n*Tip: You have ${state.contextCount} contexts. Pass context_id to analyze a specific one.*`);
+    }
     sections.push(stateLines.join('\n'));
   }
 
