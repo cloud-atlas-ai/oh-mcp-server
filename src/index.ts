@@ -80,6 +80,11 @@ interface GraphNode {
   created_at: string;
 }
 
+// Helper to detect personal workspace context
+function isPersonalContext(context: { id: string; title: string }): boolean {
+  return context.title === 'Personal Workspace' || context.id.includes('personal:');
+}
+
 interface UserState {
   contextCount: number;
   personalContext: { id: string; title: string } | null;
@@ -101,9 +106,7 @@ function assessUserState(
   endeavors: GraphNode[],
   logs: Array<{ log_date: string }>
 ): UserState {
-  const personalContext = contexts.find(c =>
-    c.title === 'Personal Workspace' || c.id.includes('personal:')
-  ) || null;
+  const personalContext = contexts.find(isPersonalContext) || null;
 
   const missions = endeavors.filter(e => e.node_type.toLowerCase() === 'mission');
   const aims = endeavors.filter(e => e.node_type.toLowerCase() === 'aim');
@@ -1047,9 +1050,7 @@ Mission (why you exist)
         // Find target context (specified, or personal)
         let targetContext = context_id
           ? contexts.find((c: { id: string }) => c.id === context_id)
-          : contexts.find((c: { id: string; title: string }) =>
-              c.title === 'Personal Workspace' || c.id.includes('personal:')
-            );
+          : contexts.find(isPersonalContext);
 
         if (!targetContext && contexts.length > 0) {
           targetContext = contexts[0]; // Fall back to first available
