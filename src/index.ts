@@ -375,6 +375,152 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ['log_id']
         }
+      },
+      {
+        name: 'oh_create_metis_candidate',
+        description: 'Create a metis candidate (pattern/learning observed during work). Use this when you discover a reusable insight. The candidate will be reviewed by a human in the OH app Reflect mode, where they can promote it to full metis with structured fields (violated_expectation, observed_reality, consequence).',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            endeavor_id: {
+              type: 'string',
+              description: 'Endeavor ID this learning belongs to'
+            },
+            content: {
+              type: 'string',
+              description: 'The insight or pattern observed (markdown). Describe: what you expected, what actually happened, and why the difference mattered.'
+            }
+          },
+          required: ['endeavor_id', 'content']
+        }
+      },
+      {
+        name: 'oh_create_guardrail_candidate',
+        description: 'Create a guardrail candidate (constraint/rule that should be enforced). Use this when you discover something that should NEVER happen again. The candidate will be reviewed by a human in the OH app Reflect mode, where they can promote it to full guardrail with title and override protocol.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            endeavor_id: {
+              type: 'string',
+              description: 'Endeavor ID this constraint applies to'
+            },
+            content: {
+              type: 'string',
+              description: 'The constraint or rule (markdown). Should clearly state what must/must not happen and why.'
+            }
+          },
+          required: ['endeavor_id', 'content']
+        }
+      },
+      // Dive Packs - curated grounding context for working sessions
+      {
+        name: 'oh_get_dive_context',
+        description: 'Get all context needed to create a dive pack: endeavor details, ancestors, siblings, children, metis, guardrails, and recent logs. Use this before creating a dive pack to understand what grounding context is available.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            endeavor_id: { type: 'string', description: 'Endeavor ID to get dive context for' }
+          },
+          required: ['endeavor_id']
+        }
+      },
+      {
+        name: 'oh_get_dive_packs',
+        description: 'List dive packs for an endeavor. Dive packs are curated snapshots of grounding context for working sessions.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            endeavor_id: { type: 'string', description: 'Endeavor ID to list dive packs for' },
+            status: { type: 'string', enum: ['active', 'archived', 'all'], description: 'Filter by status (default: active)' },
+            limit: { type: 'number', description: 'Maximum number of packs to return (default: 10)' }
+          },
+          required: ['endeavor_id']
+        }
+      },
+      {
+        name: 'oh_get_dive_pack',
+        description: 'Get a specific dive pack by ID, including full content and rendered markdown.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            dive_pack_id: { type: 'string', description: 'Dive pack ID to fetch' }
+          },
+          required: ['dive_pack_id']
+        }
+      },
+      {
+        name: 'oh_create_dive_pack',
+        description: 'Create a new dive pack. A dive pack captures curated grounding context (mission context, guardrails, endeavors, metis, tools, notes) plus rendered markdown for injection into working sessions.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            primary_endeavor_id: { type: 'string', description: 'The primary endeavor this dive pack is for' },
+            source_snapshot: {
+              type: 'object',
+              description: 'IDs and versions of source content for staleness detection',
+              properties: {
+                endeavor_versions: { type: 'object', description: 'Map of endeavor IDs to timestamps' },
+                metis_ids: { type: 'array', items: { type: 'string' } },
+                guardrail_ids: { type: 'array', items: { type: 'string' } }
+              }
+            },
+            content: {
+              type: 'object',
+              description: 'The curated dive pack content',
+              properties: {
+                constitutional: {
+                  type: 'object',
+                  properties: {
+                    mission_context: { type: 'string' },
+                    standing_guardrails: { type: 'array', items: { type: 'string' } }
+                  },
+                  required: ['mission_context', 'standing_guardrails']
+                },
+                endeavors: { type: 'array' },
+                metis: { type: 'array' },
+                guardrails: { type: 'array' },
+                tools: { type: 'array' },
+                notes: { type: 'string' }
+              },
+              required: ['constitutional']
+            },
+            rendered_md: { type: 'string', description: 'Pre-rendered markdown for OH_context.md' }
+          },
+          required: ['primary_endeavor_id', 'source_snapshot', 'content', 'rendered_md']
+        }
+      },
+      {
+        name: 'oh_archive_dive_pack',
+        description: 'Archive a dive pack (soft delete)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            dive_pack_id: { type: 'string', description: 'ID of the dive pack to archive' }
+          },
+          required: ['dive_pack_id']
+        }
+      },
+      {
+        name: 'oh_unarchive_dive_pack',
+        description: 'Restore an archived dive pack',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            dive_pack_id: { type: 'string', description: 'ID of the dive pack to restore' }
+          },
+          required: ['dive_pack_id']
+        }
+      },
+      {
+        name: 'oh_delete_dive_pack',
+        description: 'Permanently delete a dive pack',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            dive_pack_id: { type: 'string', description: 'ID of the dive pack to delete' }
+          },
+          required: ['dive_pack_id']
+        }
       }
     ]
   };
@@ -723,6 +869,116 @@ Mission (why you exist)
           method: 'DELETE'
         });
         return { content: [{ type: 'text', text: data.message || 'Log deleted' }] };
+      }
+
+      case 'oh_create_metis_candidate': {
+        const { endeavor_id, content } = args as {
+          endeavor_id: string;
+          content: string;
+        };
+
+        const data = await ohFetch('/api/candidates', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'metis',
+            endeavor_id,
+            content,
+            source_type: 'agent'
+          })
+        });
+
+        return {
+          content: [{
+            type: 'text',
+            text: `Metis candidate created successfully. Candidate ID: ${data.candidate_id}\n\nNext: Human reviews and promotes this candidate in OH app Reflect mode (app.openhorizons.me).`
+          }]
+        };
+      }
+
+      case 'oh_create_guardrail_candidate': {
+        const { endeavor_id, content } = args as {
+          endeavor_id: string;
+          content: string;
+        };
+
+        const data = await ohFetch('/api/candidates', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'guardrail',
+            endeavor_id,
+            content,
+            source_type: 'agent'
+          })
+        });
+
+        return {
+          content: [{
+            type: 'text',
+            text: `Guardrail candidate created successfully. Candidate ID: ${data.candidate_id}\n\nNext: Human reviews and promotes this candidate in OH app Reflect mode (app.openhorizons.me).`
+          }]
+        };
+      }
+
+      // Dive Packs handlers
+      case 'oh_get_dive_context': {
+        const { endeavor_id } = args as { endeavor_id: string };
+        const data = await ohFetch(`/api/endeavors/${encodeURIComponent(endeavor_id)}/dive-context`);
+        return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+      }
+
+      case 'oh_get_dive_packs': {
+        const { endeavor_id, status = 'active', limit = 10 } = args as {
+          endeavor_id: string;
+          status?: string;
+          limit?: number;
+        };
+        const params = new URLSearchParams({ status, limit: String(limit) });
+        const data = await ohFetch(`/api/endeavors/${encodeURIComponent(endeavor_id)}/dive-packs?${params}`);
+        return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+      }
+
+      case 'oh_get_dive_pack': {
+        const { dive_pack_id } = args as { dive_pack_id: string };
+        const data = await ohFetch(`/api/dive-packs/${encodeURIComponent(dive_pack_id)}`);
+        return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+      }
+
+      case 'oh_create_dive_pack': {
+        const { primary_endeavor_id, source_snapshot, content, rendered_md } = args as {
+          primary_endeavor_id: string;
+          source_snapshot: object;
+          content: object;
+          rendered_md: string;
+        };
+        const data = await ohFetch('/api/dive-packs', {
+          method: 'POST',
+          body: JSON.stringify({ primary_endeavor_id, source_snapshot, content, rendered_md })
+        });
+        return { content: [{ type: 'text', text: `Dive pack created. ID: ${data.id}` }] };
+      }
+
+      case 'oh_archive_dive_pack': {
+        const { dive_pack_id } = args as { dive_pack_id: string };
+        const data = await ohFetch(`/api/dive-packs/${encodeURIComponent(dive_pack_id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'archived' })
+        });
+        return { content: [{ type: 'text', text: 'Dive pack archived' }] };
+      }
+
+      case 'oh_unarchive_dive_pack': {
+        const { dive_pack_id } = args as { dive_pack_id: string };
+        const data = await ohFetch(`/api/dive-packs/${encodeURIComponent(dive_pack_id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'active' })
+        });
+        return { content: [{ type: 'text', text: 'Dive pack restored' }] };
+      }
+
+      case 'oh_delete_dive_pack': {
+        const { dive_pack_id } = args as { dive_pack_id: string };
+        await ohFetch(`/api/dive-packs/${encodeURIComponent(dive_pack_id)}`, { method: 'DELETE' });
+        return { content: [{ type: 'text', text: 'Dive pack deleted' }] };
       }
 
       default:
