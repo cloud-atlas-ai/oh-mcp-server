@@ -71,7 +71,7 @@ async function ohFetch(path: string, options: RequestInit = {}): Promise<any> {
 
 // Create the MCP server
 const server = new Server(
-  { name: 'open-horizons', version: '0.1.0' },
+  { name: 'open-horizons', version: '0.3.0' },
   { capabilities: { tools: {} } }
 );
 
@@ -459,7 +459,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'object',
               description: 'IDs and versions of source content for staleness detection',
               properties: {
-                endeavor_versions: { type: 'object', description: 'Map of endeavor IDs to timestamps' },
+                endeavor_versions: { type: 'object', additionalProperties: { type: 'string' }, description: 'Map of endeavor IDs to timestamps' },
                 metis_ids: { type: 'array', items: { type: 'string' } },
                 guardrail_ids: { type: 'array', items: { type: 'string' } }
               }
