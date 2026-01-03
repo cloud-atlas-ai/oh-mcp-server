@@ -835,7 +835,7 @@ Mission (why you exist)
 
       case 'oh_delete_context': {
         const { context_id } = args as { context_id: string };
-        const data = await ohFetch(`/api/contexts/${encodeURIComponent(context_id)}`, {
+        await ohFetch(`/api/contexts/${encodeURIComponent(context_id)}`, {
           method: 'DELETE'
         });
         return { content: [{ type: 'text', text: 'Context deleted' }] };
@@ -847,7 +847,7 @@ Mission (why you exist)
           email: string;
           role?: 'editor' | 'viewer';
         };
-        const data = await ohFetch(`/api/contexts/${encodeURIComponent(context_id)}/invite`, {
+        await ohFetch(`/api/contexts/${encodeURIComponent(context_id)}/invite`, {
           method: 'POST',
           body: JSON.stringify({ email, role })
         });
@@ -856,7 +856,7 @@ Mission (why you exist)
 
       case 'oh_update_log': {
         const { log_id, content } = args as { log_id: string; content: string };
-        const data = await ohFetch(`/api/logs/${encodeURIComponent(log_id)}`, {
+        await ohFetch(`/api/logs/${encodeURIComponent(log_id)}`, {
           method: 'PUT',
           body: JSON.stringify({ content })
         });
@@ -959,7 +959,7 @@ Mission (why you exist)
 
       case 'oh_archive_dive_pack': {
         const { dive_pack_id } = args as { dive_pack_id: string };
-        const data = await ohFetch(`/api/dive-packs/${encodeURIComponent(dive_pack_id)}`, {
+        await ohFetch(`/api/dive-packs/${encodeURIComponent(dive_pack_id)}`, {
           method: 'PATCH',
           body: JSON.stringify({ status: 'archived' })
         });
@@ -968,7 +968,7 @@ Mission (why you exist)
 
       case 'oh_unarchive_dive_pack': {
         const { dive_pack_id } = args as { dive_pack_id: string };
-        const data = await ohFetch(`/api/dive-packs/${encodeURIComponent(dive_pack_id)}`, {
+        await ohFetch(`/api/dive-packs/${encodeURIComponent(dive_pack_id)}`, {
           method: 'PATCH',
           body: JSON.stringify({ status: 'active' })
         });
