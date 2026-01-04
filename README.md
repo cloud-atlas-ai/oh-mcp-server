@@ -101,11 +101,13 @@ If it works, you'll see OH MCP tools available!
 - **`oh_set_parent`** - Change parent of an endeavor (move in hierarchy)
 - **`oh_delete_endeavor`** - Permanently delete an endeavor
 
-### Write Operations (Logging)
+### Write Operations (Logging & Learning)
 
 - **`oh_log_decision`** - Log decision, note, or progress to an endeavor
 - **`oh_update_log`** - Update a log entry's content
 - **`oh_delete_log`** - Delete a log entry
+- **`oh_create_metis_candidate`** - Surface a pattern/learning for later review (metis = situated judgment)
+- **`oh_create_guardrail_candidate`** - Surface a constraint/rule that should be enforced
 
 ### Write Operations (Candidates)
 
@@ -136,6 +138,19 @@ Mission (why you exist)
 - **Endeavors**: Any node in the hierarchy (mission, aim, initiative, task)
 - **Decision logs**: Captured reasoning and progress tied to endeavors
 - **Alignment**: Every task traces back to a mission, so you always know *why*
+- **Metis**: Situated judgment - patterns and learnings captured from real work
+- **Guardrails**: Executable constraints that prevent repeating mistakes
+
+### Learning Capture Workflow
+
+When agents discover a reusable insight or constraint during work:
+
+1. **Agent creates candidate** - Use `oh_create_metis_candidate` or `oh_create_guardrail_candidate` to surface it
+2. **Human reviews in OH app** - Candidates appear in the Reflect mode UI at app.openhorizons.me for human review
+3. **Human promotes with structure** - Add structured fields in OH app (violated_expectation, observed_reality, consequence for metis; title and override_protocol for guardrails)
+4. **Activated knowledge** - Promoted items become active metis/guardrails that inform future agent work
+
+This two-step flow ensures quality - agents flag "this matters" moments with near-zero friction, while humans curate what becomes durable knowledge in the OH app.
 
 ## Use Cases
 
