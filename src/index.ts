@@ -449,6 +449,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
+        name: 'oh_suggest_dive_pack',
+        description: 'Get a suggested dive pack with defaults and candidates for curation. Returns pre-selected defaults (primary endeavor, ancestors, mission context, high-severity guardrails) and optional candidates (siblings, metis, additional guardrails, log summaries). Use this to prepare a dive pack that the user can quickly review and approve.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            endeavor_id: { type: 'string', description: 'Endeavor ID to create dive pack for' },
+            intent_type: { type: 'string', enum: ['fix', 'plan', 'review', 'explore', 'ship'], description: 'The type of work intent for this dive' }
+          },
+          required: ['endeavor_id', 'intent_type']
+        }
+      },
+      {
         name: 'oh_create_dive_pack',
         description: 'Create a new dive pack. A dive pack captures curated grounding context (mission context, guardrails, endeavors, metis, tools, notes) plus rendered markdown for injection into working sessions.',
         inputSchema: {
@@ -940,6 +952,18 @@ Mission (why you exist)
       case 'oh_get_dive_pack': {
         const { dive_pack_id } = args as { dive_pack_id: string };
         const data = await ohFetch(`/api/dive-packs/${encodeURIComponent(dive_pack_id)}`);
+        return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+      }
+
+      case 'oh_suggest_dive_pack': {
+        const { endeavor_id, intent_type } = args as {
+          endeavor_id: string;
+          intent_type: 'fix' | 'plan' | 'review' | 'explore' | 'ship';
+        };
+        const data = await ohFetch('/api/dive-packs/suggest', {
+          method: 'POST',
+          body: JSON.stringify({ endeavor_id, intent_type })
+        });
         return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
       }
 
