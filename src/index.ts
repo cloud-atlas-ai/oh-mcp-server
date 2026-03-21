@@ -38,13 +38,13 @@ function loadConfig(): { api_key?: string; api_url?: string } {
 const fileConfig = loadConfig();
 
 // Configuration: env vars take precedence over config file
-const OH_API_URL = process.env.OH_API_URL || fileConfig.api_url || 'https://app.openhorizons.me';
+const OH_API_URL = process.env.OH_API_URL || fileConfig.api_url || 'http://localhost:3000';
 const OH_API_KEY = process.env.OH_API_KEY || fileConfig.api_key;
 
 if (!OH_API_KEY) {
   console.error('ERROR: OH API key not found.');
   console.error('Please either:');
-  console.error('  1. Create ~/.config/openhorizons/config.json with {"api_key": "your-key", "api_url": "https://app.openhorizons.me"}');
+  console.error('  1. Create ~/.config/openhorizons/config.json with {"api_key": "dummy", "api_url": "http://localhost:3000"}');
   console.error('  2. Set OH_API_KEY environment variable');
   process.exit(1);
 }
@@ -177,8 +177,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             type: {
               type: 'string',
-              enum: ['mission', 'aim', 'initiative', 'task'],
-              description: 'Type of endeavor in the hierarchy'
+              description: 'Node type slug (e.g. mission, aim, initiative, task). Available types depend on the configured preset — use the Settings > Node Types page to see current types.'
             },
             context_id: {
               type: 'string',
@@ -545,7 +544,7 @@ Mission (why you exist)
       case 'oh_create_endeavor': {
         const { title, type, context_id, parent_id } = args as {
           title: string;
-          type: 'mission' | 'aim' | 'initiative' | 'task';
+          type: string;
           context_id?: string;
           parent_id?: string;
         };
@@ -771,7 +770,7 @@ Mission (why you exist)
         return {
           content: [{
             type: 'text',
-            text: `Metis candidate created successfully. Candidate ID: ${data.candidate_id}\n\nNext: Human reviews and promotes this candidate in OH app Reflect mode (app.openhorizons.me).`
+            text: `Metis candidate created successfully. Candidate ID: ${data.candidate_id}\n\nNext: Human reviews and promotes this candidate in OH app Reflect mode (the Open Horizons UI).`
           }]
         };
       }
@@ -795,7 +794,7 @@ Mission (why you exist)
         return {
           content: [{
             type: 'text',
-            text: `Guardrail candidate created successfully. Candidate ID: ${data.candidate_id}\n\nNext: Human reviews and promotes this candidate in OH app Reflect mode (app.openhorizons.me).`
+            text: `Guardrail candidate created successfully. Candidate ID: ${data.candidate_id}\n\nNext: Human reviews and promotes this candidate in OH app Reflect mode (the Open Horizons UI).`
           }]
         };
       }
