@@ -732,16 +732,7 @@ Mission (why you exist)
       }
 
       case 'oh_invite_to_context': {
-        const { context_id, email, role } = args as {
-          context_id: string;
-          email: string;
-          role?: 'editor' | 'viewer';
-        };
-        await ohFetch(`/api/contexts/${encodeURIComponent(context_id)}/invite`, {
-          method: 'POST',
-          body: JSON.stringify({ email, role })
-        });
-        return { content: [{ type: 'text', text: `Invitation sent to ${email}` }] };
+        return { content: [{ type: 'text', text: 'Context invitations are not supported in the OSS edition (no multi-user auth). This tool is available in the hosted product.' }] };
       }
 
       case 'oh_update_log': {
